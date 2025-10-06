@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Analysis Results</h1>
+            <a href="/" class="btn btn-secondary">← Upload New Document</a>
+        </header>
+
+        <main>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p id="loadingText">Analyzing document with AI...</p>
+            </div>
+
+            <div class="analysis-container" id="analysisContainer" style="display: none;">
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="extractTablesBtn">📊 Extract Tables to Excel</button>
+                    <button class="btn btn-success" id="downloadBtn" style="display: none;">💾 Download Excel</button>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="summary">Executive Summary</button>
+                    <button class="tab-btn" data-tab="insights">Key Insights</button>
+                    <button class="tab-btn" data-tab="full">Full Analysis</button>
+                    <button class="tab-btn" data-tab="chat">💬 Ask Questions</button>
+                    <button class="tab-btn" data-tab="text">Document Text</button>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-panel active" id="summary">
+                        <h2>Executive Summary</h2>
+                        <div id="summaryContent" class="content-box"></div>
+                    </div>
+
+                    <div class="tab-panel" id="insights">
+                        <h2>Key Insights & Metrics</h2>
+                        <div id="insightsContent" class="content-box"></div>
+                    </div>
+
+                    <div class="tab-panel" id="full">
+                        <h2>Comprehensive Analysis</h2>
+                        <div id="fullContent" class="content-box"></div>
+                    </div>
+
+                    <div class="tab-panel" id="chat">
+                        <h2>💬 Ask Questions About This Document</h2>
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="chat-welcome">
+                                    <p>👋 Hi! I'm your AI assistant. Ask me anything about this financial document!</p>
+                                    <div class="chat-suggestions">
+                                        <p><strong>Try asking:</strong></p>
+                                        <button class="suggestion-btn" onclick="askSuggestion('What is the total revenue?')">What is the total revenue?</button>
+                                        <button class="suggestion-btn" onclick="askSuggestion('What are the main expenses?')">What are the main expenses?</button>
+                                        <button class="suggestion-btn" onclick="askSuggestion('Is the company profitable?')">Is the company profitable?</button>
+                                        <button class="suggestion-btn" onclick="askSuggestion('What are the key risks?')">What are the key risks?</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chatInput" placeholder="Ask a question about this document..." />
+                                <button id="chatSendBtn" class="btn btn-primary">Send</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-panel" id="text">
+                        <h2>Extracted Document Text</h2>
+                        <div id="textContent" class="content-box text-content"></div>
+                    </div>
+                </div>
+
+                <div class="document-info">
+                    <h3>Document Information</h3>
+                    <div id="docInfo"></div>
+                </div>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <h2>⚠️ Analysis Failed</h2>
+                <p id="errorText"></p>
+                <a href="/" class="btn btn-primary">Try Another Document</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const BACKEND_URL = '<%= backendUrl %>';
+        const FILE_ID = '<%= fileId %>';
+
+        let analysisData = null;
+
+        let conversationId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            analyzeDocument();
+            setupTabHandlers();
+            setupTableExtraction();
+            setupChat();
+        });
+
+        async function analyzeDocument() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_id: FILE_ID,
+                        analysis_type: 'comprehensive'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    analysisData = result;
+                    displayAnalysis(result);
+                    loadDocumentText();
+                } else {
+                    throw new Error(result.detail || 'Analysis failed');
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        async function loadDocumentText() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/analyze/${FILE_ID}/text`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('textContent').textContent = result.text;
+                }
+            } catch (error) {
+                console.error('Failed to load document text:', error);
+            }
+        }
+
+        function displayAnalysis(data) {
+            // Display sections with fallback logic
+            let summarySection = '';
+            let insightsSection = '';
+
+            if (data.sections && Object.keys(data.sections).length > 0) {
+                summarySection = data.sections.executive_summary || '';
+                insightsSection = data.sections.key_metrics || data.sections.financial_highlights || '';
+            }
+
+            // Fallback: if sections are empty but full_analysis exists, extract content
+            if (!summarySection && data.full_analysis) {
+                // Extract first 2-3 paragraphs as summary
+                const paragraphs = data.full_analysis.split('\n\n').filter(p => p.trim());
+                summarySection = paragraphs.slice(0, 3).join('\n\n');
+            }
+
+            if (!insightsSection && data.full_analysis) {
+                // Try to find insights-related content in full analysis
+                const paragraphs = data.full_analysis.split('\n\n').filter(p => p.trim());
+                // Skip first 3 (used for summary), take next 3-4 for insights
+                insightsSection = paragraphs.slice(3, 7).join('\n\n');
+            }
+
+            document.getElementById('summaryContent').innerHTML = formatMarkdown(summarySection);
+            document.getElementById('insightsContent').innerHTML = formatMarkdown(insightsSection);
+
+            // Display full analysis
+            if (data.full_analysis) {
+                document.getElementById('fullContent').innerHTML = formatMarkdown(data.full_analysis);
+            }
+
+            // Display document info
+            const docInfo = `
+                <p><strong>Format:</strong> ${data.document_info?.format?.toUpperCase() || 'N/A'}</p>
+                <p><strong>Pages:</strong> ${data.document_info?.page_count || 'N/A'}</p>
+                <p><strong>AI Provider:</strong> ${data.ai_info?.provider || 'N/A'}</p>
+                <p><strong>Model:</strong> ${data.ai_info?.model || 'N/A'}</p>
+            `;
+            document.getElementById('docInfo').innerHTML = docInfo;
+
+            // Hide loading, show results
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analysisContainer').style.display = 'block';
+        }
+
+        function formatMarkdown(text) {
+            if (!text) return '<p>No content available</p>';
+
+            // Simple markdown formatting
+            let html = text
+                .replace(/### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/^\- (.*$)/gim, '<li>$1</li>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+
+            // Wrap in paragraph
+            html = '<p>' + html + '</p>';
+
+            // Fix lists
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+            return html;
+        }
+
+        function setupTabHandlers() {
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.dataset.tab;
+
+                    // Remove active class from all
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => p.classList.remove('active'));
+
+                    // Add active to clicked
+                    btn.classList.add('active');
+                    document.getElementById(tabName).classList.add('active');
+                });
+            });
+        }
+
+        function setupTableExtraction() {
+            document.getElementById('extractTablesBtn').addEventListener('click', extractTables);
+        }
+
+        async function extractTables() {
+            const btn = document.getElementById('extractTablesBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Extracting tables...';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/extract-tables`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_id: FILE_ID
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    btn.textContent = `✅ ${result.tables_count} tables extracted!`;
+                    document.getElementById('downloadBtn').style.display = 'inline-block';
+                    document.getElementById('downloadBtn').onclick = () => {
+                        window.open(`${BACKEND_URL}/api/download/${FILE_ID}`, '_blank');
+                    };
+                } else {
+                    throw new Error(result.detail || 'Table extraction failed');
+                }
+            } catch (error) {
+                btn.textContent = '❌ Extraction failed';
+                alert(`Table extraction failed: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+
+        // Chat functionality
+        function setupChat() {
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+
+            chatSendBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        async function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const question = chatInput.value.trim();
+
+            if (!question) return;
+
+            // Clear input
+            chatInput.value = '';
+
+            // Add user message to chat
+            addChatMessage('user', question);
+
+            // Show typing indicator
+            addTypingIndicator();
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_id: FILE_ID,
+                        question: question,
+                        conversation_id: conversationId
+                    })
+                });
+
+                const result = await response.json();
+
+                // Remove typing indicator
+                removeTypingIndicator();
+
+                if (result.success) {
+                    conversationId = result.conversation_id;
+                    addChatMessage('assistant', result.answer);
+                } else {
+                    throw new Error(result.detail || 'Chat failed');
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('assistant', `Sorry, I encountered an error: ${error.message}`);
+            }
+        }
+
+        function askSuggestion(question) {
+            const chatInput = document.getElementById('chatInput');
+            chatInput.value = question;
+            sendMessage();
+        }
+
+        function addChatMessage(role, content) {
+            const chatMessages = document.getElementById('chatMessages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${role}-message`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar';
+            avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerHTML = formatMarkdown(content);
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message assistant-message typing-indicator';
+            typingDiv.id = 'typingIndicator';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar';
+            avatar.textContent = '🤖';
+
+            const dots = document.createElement('div');
+            dots.className = 'typing-dots';
+            dots.innerHTML = '<span></span><span></span><span></span>';
+
+            typingDiv.appendChild(avatar);
+            typingDiv.appendChild(dots);
+            chatMessages.appendChild(typingDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+    </script>
+</body>
+</html>

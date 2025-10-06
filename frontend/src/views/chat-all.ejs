@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💬 Ask All Documents</h1>
+            <p class="subtitle">Chat with AI across all your uploaded financial documents</p>
+            <div class="header-buttons">
+                <a href="/" class="btn btn-primary">+ Upload New</a>
+                <a href="/history" class="btn btn-secondary">📚 View History</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="chat-all-container">
+                <div class="document-selector">
+                    <h3>📑 Select Documents to Query:</h3>
+                    <div class="selector-actions">
+                        <button class="btn-small btn-primary" onclick="selectAll()">✓ Select All</button>
+                        <button class="btn-small btn-secondary" onclick="deselectAll()">✗ Deselect All</button>
+                    </div>
+                    <div id="documentCheckboxes" class="checkbox-list">
+                        <p>Loading documents...</p>
+                    </div>
+                    <div class="selection-summary">
+                        <span id="selectionCount">0 documents selected</span>
+                    </div>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-welcome">
+                            <p>👋 Hi! Select documents on the left and ask me anything!</p>
+                            <div class="chat-suggestions">
+                                <p><strong>Try asking:</strong></p>
+                                <button class="suggestion-btn" onclick="askSuggestion('Compare revenue across documents')">Compare revenue across documents</button>
+                                <button class="suggestion-btn" onclick="askSuggestion('Which company has the highest profit?')">Which company has the highest profit?</button>
+                                <button class="suggestion-btn" onclick="askSuggestion('Summarize all financial positions')">Summarize all financial positions</button>
+                                <button class="suggestion-btn" onclick="askSuggestion('What are common risk factors?')">What are common risk factors?</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="Ask a question about selected documents..." />
+                        <button id="chatSendBtn" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const BACKEND_URL = '<%= backendUrl %>';
+        let allDocuments = [];
+        let conversationId = 'all_docs_' + Date.now();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllDocuments();
+            setupChat();
+        });
+
+        async function loadAllDocuments() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/documents`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allDocuments = result.documents;
+                    displayDocumentsList();
+                }
+            } catch (error) {
+                console.error('Failed to load documents:', error);
+            }
+        }
+
+        function displayDocumentsList() {
+            const checkboxDiv = document.getElementById('documentCheckboxes');
+
+            if (allDocuments.length === 0) {
+                checkboxDiv.innerHTML = '<p>No documents uploaded yet. <a href="/">Upload one now!</a></p>';
+                return;
+            }
+
+            checkboxDiv.innerHTML = allDocuments.map(doc => `
+                <label class="doc-checkbox">
+                    <input type="checkbox"
+                           value="${doc.file_id}"
+                           onchange="updateSelectionCount()"
+                           checked>
+                    <span class="checkbox-label">
+                        <span class="doc-icon-small">${getFileIcon(doc.format)}</span>
+                        ${doc.filename}
+                    </span>
+                </label>
+            `).join('');
+
+            updateSelectionCount();
+        }
+
+        function getFileIcon(format) {
+            const icons = {
+                'PDF': '📕',
+                'DOCX': '📘',
+                'DOC': '📘',
+                'TXT': '📄'
+            };
+            return icons[format] || '📄';
+        }
+
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('#documentCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateSelectionCount();
+        }
+
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('#documentCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateSelectionCount();
+        }
+
+        function updateSelectionCount() {
+            const checkboxes = document.querySelectorAll('#documentCheckboxes input[type="checkbox"]:checked');
+            const count = checkboxes.length;
+            document.getElementById('selectionCount').textContent =
+                `${count} document${count !== 1 ? 's' : ''} selected`;
+        }
+
+        function getSelectedDocuments() {
+            const checkboxes = document.querySelectorAll('#documentCheckboxes input[type="checkbox"]:checked');
+            const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+            return allDocuments.filter(doc => selectedIds.includes(doc.file_id));
+        }
+
+        function setupChat() {
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+
+            chatSendBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        async function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const question = chatInput.value.trim();
+
+            if (!question) return;
+
+            // Get selected documents
+            const selectedDocs = getSelectedDocuments();
+
+            if (selectedDocs.length === 0) {
+                alert('Please select at least one document first!');
+                return;
+            }
+
+            chatInput.value = '';
+            addChatMessage('user', question);
+            addTypingIndicator();
+
+            try {
+                // Ask only selected documents and combine results
+                const answers = [];
+
+                for (const doc of selectedDocs) {
+                    const response = await fetch(`${BACKEND_URL}/api/chat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            file_id: doc.file_id,
+                            question: question,
+                            conversation_id: null  // Fresh context for each
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        answers.push({
+                            filename: doc.filename,
+                            answer: result.answer
+                        });
+                    }
+                }
+
+                removeTypingIndicator();
+
+                // Combine answers
+                let combinedAnswer = selectedDocs.length === 1
+                    ? answers[0].answer
+                    : `**Answers from ${answers.length} selected document(s):**\n\n`;
+
+                if (selectedDocs.length > 1) {
+                    answers.forEach((item, index) => {
+                        combinedAnswer += `**📄 ${item.filename}:**\n${item.answer}\n\n`;
+                    });
+                }
+
+                addChatMessage('assistant', combinedAnswer);
+
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('assistant', `Sorry, I encountered an error: ${error.message}`);
+            }
+        }
+
+        function askSuggestion(question) {
+            document.getElementById('chatInput').value = question;
+            sendMessage();
+        }
+
+        function addChatMessage(role, content) {
+            const chatMessages = document.getElementById('chatMessages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${role}-message`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar';
+            avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerHTML = formatMarkdown(content);
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            chatMessages.appendChild(messageDiv);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message assistant-message typing-indicator';
+            typingDiv.id = 'typingIndicator';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar';
+            avatar.textContent = '🤖';
+
+            const dots = document.createElement('div');
+            dots.className = 'typing-dots';
+            dots.innerHTML = '<span></span><span></span><span></span>';
+
+            typingDiv.appendChild(avatar);
+            typingDiv.appendChild(dots);
+            chatMessages.appendChild(typingDiv);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function formatMarkdown(text) {
+            if (!text) return '<p>No content available</p>';
+
+            let html = text
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+
+            html = '<p>' + html + '</p>';
+            return html;
+        }
+    </script>
+</body>
+</html>

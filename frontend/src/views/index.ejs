@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Financial Statement Analyzer</h1>
+            <p class="subtitle">AI-Powered Analysis • Table Extraction • Insights Generation</p>
+            <div class="header-buttons">
+                <a href="/history" class="btn btn-secondary">📚 View History</a>
+                <a href="/chat-all" class="btn btn-success">💬 Ask All Documents</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <div class="upload-box" id="uploadBox">
+                    <div class="upload-icon">📄</div>
+                    <h2>Upload Financial Statement</h2>
+                    <p>Drag and drop your file here or click to browse</p>
+                    <p class="file-types">Supported formats: PDF, Word (.docx), Text (.txt)</p>
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt" hidden>
+                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                        Select File
+                    </button>
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <h3>Selected File</h3>
+                    <p id="fileName"></p>
+                    <p id="fileSize"></p>
+                    <button class="btn btn-success" id="uploadBtn">Upload & Analyze</button>
+                    <button class="btn btn-secondary" onclick="resetUpload()">Cancel</button>
+                </div>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loadingText">Uploading file...</p>
+            </div>
+
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI Analysis</h3>
+                    <p>Get comprehensive AI-powered summaries and insights from your financial statements</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Table Extraction</h3>
+                    <p>Automatically extract all tables and export them to Excel format</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💡</div>
+                    <h3>Key Insights</h3>
+                    <p>Identify trends, risks, and opportunities in your financial data</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by AI • Built with Node.js & Python</p>
+        </footer>
+    </div>
+
+    <script>
+        const BACKEND_URL = '<%= backendUrl %>';
+        let selectedFile = null;
+
+        // File input change handler
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        // Drag and drop handlers
+        const uploadBox = document.getElementById('uploadBox');
+
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('drag-over');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('drag-over');
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                displayFileInfo();
+            }
+        });
+
+        // Upload button handler
+        document.getElementById('uploadBtn').addEventListener('click', uploadFile);
+
+        function handleFileSelect(e) {
+            selectedFile = e.target.files[0];
+            displayFileInfo();
+        }
+
+        function displayFileInfo() {
+            if (!selectedFile) return;
+
+            // Validate file type
+            const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain'];
+            if (!validTypes.includes(selectedFile.type) && !selectedFile.name.match(/\.(pdf|docx|doc|txt)$/i)) {
+                alert('Invalid file type. Please select a PDF, Word, or Text file.');
+                resetUpload();
+                return;
+            }
+
+            // Validate file size (50MB max)
+            if (selectedFile.size > 50 * 1024 * 1024) {
+                alert('File too large. Maximum size is 50MB.');
+                resetUpload();
+                return;
+            }
+
+            document.getElementById('fileName').textContent = `Name: ${selectedFile.name}`;
+            document.getElementById('fileSize').textContent = `Size: ${formatFileSize(selectedFile.size)}`;
+            document.getElementById('uploadBox').style.display = 'none';
+            document.getElementById('fileInfo').style.display = 'block';
+        }
+
+        async function uploadFile() {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            showLoading('Uploading file...');
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showLoading('File uploaded! Redirecting to analysis...');
+                    setTimeout(() => {
+                        window.location.href = `/analyze/${result.file_id}`;
+                    }, 1000);
+                } else {
+                    throw new Error(result.detail || 'Upload failed');
+                }
+            } catch (error) {
+                hideLoading();
+                alert(`Upload failed: ${error.message}`);
+                resetUpload();
+            }
+        }
+
+        function resetUpload() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadBox').style.display = 'flex';
+            document.getElementById('fileInfo').style.display = 'none';
+        }
+
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('fileInfo').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+    </script>
+</body>
+</html>
