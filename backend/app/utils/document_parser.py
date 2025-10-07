@@ -1,10 +1,8 @@
 import os
 from pathlib import Path
 from typing import Dict, List
-import PyPDF2
-import pdfplumber
 from docx import Document
-import io
+from docling.document_converter import DocumentConverter
 
 
 class DocumentParser:
@@ -12,57 +10,67 @@ class DocumentParser:
 
     @staticmethod
     def parse_pdf(file_path: str) -> Dict[str, any]:
-        """Extract text from PDF using PyPDF2 and pdfplumber for better accuracy"""
-        text_content = []
-
+        """
+        Extract text from PDF using Docling (IBM's advanced PDF parser)
+        Handles complex layouts, tables, headers, footers, and multi-column text
+        """
         try:
-            # Try pdfplumber first (better for complex PDFs)
-            with pdfplumber.open(file_path) as pdf:
-                for page_num, page in enumerate(pdf.pages, 1):
-                    page_text = page.extract_text()
-                    if page_text:
-                        text_content.append({
-                            "page": page_num,
-                            "text": page_text.strip()
-                        })
+            print(f"📄 Parsing PDF with Docling: {Path(file_path).name}")
 
-            full_text = "\n\n".join([page["text"] for page in text_content])
+            # Initialize Docling converter
+            converter = DocumentConverter()
+
+            # Convert PDF to document
+            result = converter.convert(file_path)
+
+            # Extract text from document
+            # Docling preserves document structure, tables, and formatting
+            full_text = result.document.export_to_markdown()
+
+            # Also get page-by-page breakdown if available
+            pages_content = []
+            page_count = 0
+
+            # Docling returns structured content - extract pages
+            for item in result.document.iterate_items():
+                if hasattr(item, 'prov'):
+                    page_num = item.prov[0].page if item.prov else page_count + 1
+                    if page_num > page_count:
+                        page_count = page_num
+
+            # Get tables separately for better structure
+            tables = []
+            for table in result.document.tables:
+                # Pass doc argument to avoid deprecation warning
+                try:
+                    table_data = table.export_to_dataframe(doc=result.document)
+                except:
+                    table_data = str(table)
+
+                tables.append({
+                    "data": table_data,
+                    "caption": getattr(table, 'caption', '')
+                })
+
+            print(f"✅ Docling parsed: {page_count} pages, {len(tables)} tables")
 
             return {
                 "success": True,
                 "text": full_text,
-                "pages": text_content,
-                "page_count": len(text_content),
+                "page_count": page_count,
+                "tables_found": len(tables),
+                "tables": tables,
+                "format": "pdf",
+                "parser": "docling"
+            }
+
+        except Exception as e:
+            print(f"❌ Docling parsing failed: {str(e)}")
+            return {
+                "success": False,
+                "error": f"PDF parsing failed with Docling: {str(e)}",
                 "format": "pdf"
             }
-        except Exception as e:
-            # Fallback to PyPDF2
-            try:
-                with open(file_path, 'rb') as file:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    for page_num, page in enumerate(pdf_reader.pages, 1):
-                        page_text = page.extract_text()
-                        if page_text:
-                            text_content.append({
-                                "page": page_num,
-                                "text": page_text.strip()
-                            })
-
-                full_text = "\n\n".join([page["text"] for page in text_content])
-
-                return {
-                    "success": True,
-                    "text": full_text,
-                    "pages": text_content,
-                    "page_count": len(text_content),
-                    "format": "pdf"
-                }
-            except Exception as e2:
-                return {
-                    "success": False,
-                    "error": f"PDF parsing failed: {str(e2)}",
-                    "format": "pdf"
-                }
 
     @staticmethod
     def parse_docx(file_path: str) -> Dict[str, any]:

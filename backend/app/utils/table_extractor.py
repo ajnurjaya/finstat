@@ -1,4 +1,3 @@
-import pdfplumber
 from docx import Document
 import pandas as pd
 from openpyxl import Workbook
@@ -6,6 +5,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from pathlib import Path
 from typing import List, Dict
 import re
+from docling.document_converter import DocumentConverter
 
 
 class TableExtractor:
@@ -13,24 +13,46 @@ class TableExtractor:
 
     @staticmethod
     def extract_tables_from_pdf(file_path: str) -> List[pd.DataFrame]:
-        """Extract tables from PDF using pdfplumber"""
+        """Extract tables from PDF using Docling (IBM's advanced PDF parser)"""
         tables = []
 
         try:
-            with pdfplumber.open(file_path) as pdf:
-                for page_num, page in enumerate(pdf.pages, 1):
-                    page_tables = page.extract_tables()
+            print(f"📄 Extracting tables from PDF with Docling: {Path(file_path).name}")
 
-                    for table_num, table in enumerate(page_tables):
-                        if table and len(table) > 0:
-                            # Convert to DataFrame
-                            df = pd.DataFrame(table[1:], columns=table[0] if table[0] else None)
-                            df.attrs['page'] = page_num
-                            df.attrs['table_num'] = table_num + 1
-                            tables.append(df)
+            # Initialize Docling converter
+            converter = DocumentConverter()
+            result = converter.convert(file_path)
+
+            # Extract tables from Docling result
+            for table_num, table in enumerate(result.document.tables, 1):
+                try:
+                    # Pass doc argument to avoid deprecation warning
+                    df = table.export_to_dataframe(doc=result.document)
+
+                    # Get page number from provenance if available
+                    page_num = None
+                    if hasattr(table, 'prov') and table.prov:
+                        page_num = table.prov[0].page if hasattr(table.prov[0], 'page') else None
+
+                    # Add metadata
+                    if page_num:
+                        df.attrs['page'] = page_num
+                    df.attrs['table_num'] = table_num
+
+                    # Add caption if available
+                    if hasattr(table, 'caption') and table.caption:
+                        df.attrs['caption'] = table.caption
+
+                    tables.append(df)
+
+                except Exception as table_error:
+                    print(f"⚠️  Failed to extract table #{table_num}: {str(table_error)}")
+                    continue
+
+            print(f"✅ Docling extracted {len(tables)} tables from PDF")
 
         except Exception as e:
-            print(f"Error extracting tables from PDF: {str(e)}")
+            print(f"❌ Error extracting tables from PDF with Docling: {str(e)}")
 
         return tables
 

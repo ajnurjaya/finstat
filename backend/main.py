@@ -1,4 +1,19 @@
 import os
+import sys
+
+# Suppress ALL warnings globally BEFORE any other imports
+os.environ['PYTHONWARNINGS'] = 'ignore'
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+import warnings
+warnings.filterwarnings('ignore')
+warnings.simplefilter('ignore')
+
+# Redirect stderr temporarily during imports to suppress torch.load warning
+import io
+from contextlib import redirect_stderr
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv

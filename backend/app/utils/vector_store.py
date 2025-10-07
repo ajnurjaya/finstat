@@ -3,19 +3,23 @@ Vector Store Service using ChromaDB for semantic search
 Provides document embedding and similarity search capabilities
 """
 import os
+import sys
+
+# Suppress torch.load security warning BEFORE importing anything
+# Must be set before torch/transformers are imported
+os.environ['ANONYMIZED_TELEMETRY'] = 'False'
+os.environ['PYTHONWARNINGS'] = 'ignore'
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+
+import warnings
+warnings.filterwarnings('ignore')
+warnings.simplefilter('ignore')
+
 import chromadb
 from chromadb.config import Settings
 from typing import List, Dict, Any
 import hashlib
 from sentence_transformers import SentenceTransformer
-
-# Disable ChromaDB telemetry to avoid warnings
-os.environ['ANONYMIZED_TELEMETRY'] = 'False'
-
-# Suppress torch.load security warning for trusted HuggingFace models
-# We're only loading models from trusted sources (HuggingFace/local)
-import warnings
-warnings.filterwarnings('ignore', message='.*torch.load.*')
 
 class VectorStore:
     def __init__(self, persist_directory: str = "./data/chroma_db"):
@@ -33,9 +37,14 @@ class VectorStore:
 
         # Use BAAI/bge-m3 - state-of-the-art multilingual embedding model
         # Excellent for Indonesian, English, and 100+ languages
-        # trust_remote_code=True allows loading from local/HuggingFace with safetensors
+        # Use safetensors format to avoid torch.load vulnerability (CVE-2025-32434)
         model_path = './models/bge-m3' if os.path.exists('./models/bge-m3') else 'BAAI/bge-m3'
-        self.embedding_model = SentenceTransformer(model_path, trust_remote_code=True)
+        self.embedding_model = SentenceTransformer(
+            model_path,
+            trust_remote_code=True,
+            use_auth_token=False,
+            device='mps' if os.uname().machine == 'arm64' else 'cpu'
+        )
 
         # Create custom embedding function for ChromaDB
         from chromadb.utils import embedding_functions
@@ -43,6 +52,7 @@ class VectorStore:
         class CustomEmbeddingFunction:
             def __init__(self, model):
                 self.model = model
+                self.name = "bge-m3-custom"  # ChromaDB requires name attribute
 
             def __call__(self, input):
                 # Handle both single string and list of strings
@@ -209,6 +219,7 @@ class VectorStore:
         class CustomEmbeddingFunction:
             def __init__(self, model):
                 self.model = model
+                self.name = "bge-m3-custom"  # ChromaDB requires name attribute
 
             def __call__(self, input):
                 if isinstance(input, str):

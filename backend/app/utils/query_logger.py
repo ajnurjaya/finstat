@@ -61,11 +61,14 @@ class QueryLogger:
         # Prepare vector results summary
         vector_summary = []
         for i, result in enumerate(vector_results[:10]):  # Top 10 chunks
+            full_text = result.get("text", "")
             vector_summary.append({
                 "rank": i + 1,
                 "chunk_id": result.get("id", "unknown"),
                 "distance": round(result.get("distance", 0), 4),
-                "text_preview": result.get("text", "")[:150] + "..." if len(result.get("text", "")) > 150 else result.get("text", ""),
+                "text_preview": full_text[:150] + "..." if len(full_text) > 150 else full_text,
+                "text_full": full_text,  # Store complete chunk text
+                "text_length": len(full_text),
                 "metadata": result.get("metadata", {})
             })
 
