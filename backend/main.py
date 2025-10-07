@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import uvicorn
 
-from app.api import upload, analyze, tables, chat, history
+from app.api import upload, analyze, tables, chat, history, logs
 
 # Load environment variables
 load_dotenv()
@@ -31,6 +31,7 @@ app.include_router(analyze.router, prefix="/api", tags=["analyze"])
 app.include_router(tables.router, prefix="/api", tags=["tables"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(history.router, prefix="/api", tags=["history"])
+app.include_router(logs.router, prefix="/api", tags=["logs"])
 
 @app.get("/")
 async def root():

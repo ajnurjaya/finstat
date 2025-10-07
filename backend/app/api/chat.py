@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
@@ -6,6 +7,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from app.utils import DocumentParser, AIAnalyzer
+from app.utils.vector_store import get_vector_store
+from app.utils.query_logger import get_query_logger
 
 router = APIRouter()
 
@@ -33,57 +36,75 @@ class ChatResponse(BaseModel):
     file_id: str
 
 
-def _find_relevant_context(document_text: str, question: str, max_chars: int = 15000) -> str:
+def _find_relevant_context_hybrid(file_id: str, question: str, document_text: str, max_chars: int = 20000) -> tuple[str, list, list]:
     """
-    Find the most relevant parts of the document for the question.
-    Uses simple keyword matching and context extraction.
+    Hybrid search: Combines vector similarity search with keyword matching.
+    This ensures we don't miss exact matches (like names) while leveraging semantic search.
     """
-    # Extract keywords from the question (simple approach)
-    question_lower = question.lower()
-    keywords = [word for word in question_lower.split() if len(word) > 3]
+    vector_store = get_vector_store()
 
-    # If document is short enough, return it all
-    if len(document_text) <= max_chars:
-        return document_text
+    # 1. Vector search for semantic similarity
+    vector_results = vector_store.search(query=question, file_ids=[file_id], top_k=20)
 
-    # Split document into chunks (paragraphs or sections)
-    chunks = document_text.split('\n\n')
+    # Debug logging
+    print(f"\n🔍 Hybrid Search Debug:")
+    print(f"   Query: {question}")
+    print(f"   File ID: {file_id}")
+    print(f"   Vector results: {len(vector_results)}")
 
-    # Score each chunk based on keyword matches
-    scored_chunks = []
-    for i, chunk in enumerate(chunks):
-        chunk_lower = chunk.lower()
-        score = 0
+    # 2. Extract potential keywords (names, specific terms)
+    import re
+    # Look for capitalized words that might be names or specific terms
+    keywords = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', question)
+    print(f"   Detected keywords: {keywords}")
 
-        # Count keyword matches
-        for keyword in keywords:
-            score += chunk_lower.count(keyword) * 10
+    # 3. Keyword-based boosting: Find chunks with exact keyword matches
+    keyword_matched_chunks = []
+    if keywords and document_text:
+        doc_chunks = document_text.split('\n\n')
+        for chunk in doc_chunks:
+            for keyword in keywords:
+                if keyword.lower() in chunk.lower():
+                    keyword_matched_chunks.append(chunk)
+                    print(f"   ✅ Keyword match found: '{keyword}' in chunk")
+                    break
 
-        # Boost score for chunks near the beginning (often have key info)
-        if i < 10:
-            score += 5
-
-        scored_chunks.append((score, chunk))
-
-    # Sort by score (highest first)
-    scored_chunks.sort(reverse=True, key=lambda x: x[0])
-
-    # Collect top chunks until we hit the character limit
-    relevant_text = []
+    # 4. Combine results: keyword matches first, then vector results
+    combined_chunks = []
     total_chars = 0
 
-    for score, chunk in scored_chunks:
-        if total_chars + len(chunk) > max_chars:
-            break
-        if score > 0:  # Only include chunks with some relevance
-            relevant_text.append(chunk)
+    # Add keyword-matched chunks first (highest priority)
+    for chunk in keyword_matched_chunks[:5]:  # Max 5 keyword chunks
+        if total_chars + len(chunk) <= max_chars:
+            combined_chunks.append(chunk)
             total_chars += len(chunk)
 
-    # If we didn't find enough relevant text, include beginning of document
-    if total_chars < max_chars // 2:
-        relevant_text.insert(0, document_text[:max_chars // 2])
+    # Then add vector search results
+    for result in vector_results:
+        chunk_text = result['text']
+        # Skip if already added from keyword matching
+        if chunk_text in combined_chunks:
+            continue
 
-    return '\n\n'.join(relevant_text)[:max_chars]
+        if total_chars + len(chunk_text) <= max_chars:
+            combined_chunks.append(chunk_text)
+            total_chars += len(chunk_text)
+        else:
+            # Add partial chunk to fill remaining space
+            remaining = max_chars - total_chars
+            if remaining > 100:
+                combined_chunks.append(chunk_text[:remaining])
+            break
+
+    print(f"   ✅ Combined {len(combined_chunks)} chunks ({total_chars} chars)")
+    print(f"      - {len(keyword_matched_chunks[:5])} from keyword matching")
+    print(f"      - {len(combined_chunks) - len(keyword_matched_chunks[:5])} from vector search")
+
+    if not combined_chunks:
+        print("   ⚠️  No results found - returning empty context")
+        return "", vector_results, keywords
+
+    return '\n\n'.join(combined_chunks), vector_results, keywords
 
 
 @router.post("/chat")
@@ -91,6 +112,8 @@ async def chat_with_document(request: ChatRequest):
     """
     Ask questions about a specific document using AI
     """
+    start_time = time.time()
+
     try:
         # Find the uploaded file
         upload_path = Path(UPLOAD_DIR)
@@ -100,6 +123,7 @@ async def chat_with_document(request: ChatRequest):
             raise HTTPException(status_code=404, detail="File not found")
 
         file_path = str(files[0])
+        file_name = files[0].name
 
         # Parse document if not already cached
         cache_key = f"doc_{request.file_id}"
@@ -129,14 +153,14 @@ async def chat_with_document(request: ChatRequest):
         # Build context with conversation history
         conversation_history = conversation_store[conv_id]
 
-        # Search for relevant context in the document
-        # This helps when the document is very long
-        relevant_context = _find_relevant_context(document_text, request.question)
+        # Search for relevant context using hybrid search
+        # Combines vector similarity with keyword matching for best accuracy
+        relevant_context, vector_results, keywords = _find_relevant_context_hybrid(request.file_id, request.question, document_text)
 
         # Create prompt with document context
-        context_prompt = f"""You are a financial analyst assistant. Answer questions about the following financial document.
+        context_prompt = f"""You are a helpful financial analyst assistant. Answer the user's question using ONLY the information provided in the document below.
 
-FINANCIAL DOCUMENT:
+DOCUMENT CONTEXT:
 {relevant_context}
 
 CONVERSATION HISTORY:
@@ -145,7 +169,18 @@ CONVERSATION HISTORY:
         for msg in conversation_history[-3:]:  # Last 3 exchanges for context
             context_prompt += f"{msg['role'].upper()}: {msg['content']}\n"
 
-        context_prompt += f"\nUSER QUESTION: {request.question}\n\nProvide a clear, concise answer based on the document above. If the information is not in the document, say so."
+        context_prompt += f"""
+QUESTION: {request.question}
+
+INSTRUCTIONS:
+1. Read the document context carefully
+2. Extract the relevant information that answers the question
+3. For factual questions (who, what, when, where): provide the specific information found in the document
+4. For numerical questions: provide the EXACT numbers from the document - do not round or estimate
+5. If the information is truly not in the document, say "Informasi tidak ditemukan dalam dokumen"
+6. Be concise and direct in your answer
+
+ANSWER:"""
 
         # Get AI response
         analyzer = AIAnalyzer()
@@ -172,6 +207,30 @@ CONVERSATION HISTORY:
             answer = response.choices[0].message.content
         else:
             raise HTTPException(status_code=500, detail="AI provider not configured")
+
+        # Calculate response time
+        response_time_ms = (time.time() - start_time) * 1000
+
+        # Get embedding model info from vector store
+        vector_store = get_vector_store()
+        embedding_model_name = vector_store.embedding_model.model_name_or_path if hasattr(vector_store.embedding_model, 'model_name_or_path') else "BAAI/bge-m3"
+
+        # Log the query with all details
+        logger = get_query_logger()
+        logger.log_query(
+            question=request.question,
+            answer=answer,
+            file_id=request.file_id,
+            file_name=file_name,
+            embedding_model=embedding_model_name,
+            llm_model=analyzer.model,
+            llm_provider=analyzer.provider,
+            vector_results=vector_results,
+            keyword_matches=keywords,
+            total_context_chars=len(relevant_context),
+            response_time_ms=response_time_ms,
+            conversation_id=conv_id
+        )
 
         # Save to conversation history
         conversation_store[conv_id].append({"role": "user", "content": request.question})

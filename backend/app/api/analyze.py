@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.utils import DocumentParser, AIAnalyzer
+from app.utils.vector_store import get_vector_store
 
 router = APIRouter()
 
@@ -43,6 +44,18 @@ async def analyze_document(request: AnalyzeRequest):
             )
 
         document_text = parse_result["text"]
+
+        # Store document in vector database for semantic search
+        vector_store = get_vector_store()
+        vector_store.add_document(
+            file_id=request.file_id,
+            text=document_text,
+            metadata={
+                "filename": files[0].name,
+                "format": parse_result.get("format"),
+                "page_count": parse_result.get("page_count")
+            }
+        )
 
         # Initialize AI analyzer
         analyzer = AIAnalyzer()

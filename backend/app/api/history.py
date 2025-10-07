@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from typing import List, Dict
+from app.utils.vector_store import get_vector_store
 
 router = APIRouter()
 
@@ -100,6 +101,10 @@ async def delete_document(file_id: str):
         if excel_file.exists():
             excel_file.unlink()
             deleted_files.append(excel_file.name)
+
+        # Remove from vector database
+        vector_store = get_vector_store()
+        vector_store.remove_document(file_id)
 
         return JSONResponse(
             status_code=200,
