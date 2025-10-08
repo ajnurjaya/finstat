@@ -29,6 +29,11 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = None
 
 
+class ChatAllRequest(BaseModel):
+    file_ids: List[str]
+    question: str
+
+
 class ChatResponse(BaseModel):
     success: bool
     answer: str
@@ -339,3 +344,169 @@ async def clear_chat_history(conversation_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to clear history: {str(e)}")
+
+
+@router.post("/chat-all")
+async def chat_with_all_documents(request: ChatAllRequest):
+    """
+    Two-stage RAG for cross-document queries:
+    Stage 1: Extract relevant info from each document
+    Stage 2: Synthesize and compare extracted data
+    """
+    start_time = time.time()
+
+    try:
+        if not request.file_ids or len(request.file_ids) == 0:
+            raise HTTPException(status_code=400, detail="No documents selected")
+
+        upload_path = Path(UPLOAD_DIR)
+        vector_store = get_vector_store()
+        analyzer = AIAnalyzer()
+
+        # STAGE 1: Extract relevant data from each document
+        extracted_data = []
+
+        for file_id in request.file_ids:
+            # Get document metadata for display
+            files = list(upload_path.glob(f"{file_id}.*"))
+            if not files:
+                continue
+
+            file_name = files[0].name
+
+            # Get document text from ChromaDB
+            cache_key = f"doc_{file_id}"
+            if cache_key in conversation_store:
+                document_text = conversation_store[cache_key]["text"]
+            else:
+                test_search = vector_store.search(query=".", file_ids=[file_id], top_k=1)
+                if test_search and len(test_search) > 0:
+                    all_chunks = vector_store.collection.get(where={"file_id": file_id})
+                    if all_chunks and all_chunks.get('documents'):
+                        chunk_data = list(zip(all_chunks['documents'], all_chunks['metadatas']))
+                        chunk_data.sort(key=lambda x: x[1].get('chunk_index', 0))
+                        document_text = '\n\n'.join([chunk for chunk, _ in chunk_data])
+                        conversation_store[cache_key] = {"text": document_text}
+                    else:
+                        continue
+                else:
+                    continue
+
+            # Find relevant context for this document
+            relevant_context, _, _ = _find_relevant_context_hybrid(file_id, request.question, document_text)
+
+            # Extract specific information using LLM
+            extraction_prompt = f"""Extract the specific information requested from this document.
+
+DOCUMENT: {file_name}
+
+DOCUMENT CONTENT:
+{relevant_context[:15000]}
+
+QUESTION: {request.question}
+
+INSTRUCTIONS:
+1. Extract ONLY the specific data requested (numbers, facts, names, etc.)
+2. Be precise and concise - provide just the requested information
+3. Include context labels (e.g., "Revenue: $X million" or "Year: 2023")
+4. If information not found, state "Not found"
+
+EXTRACTED INFORMATION:"""
+
+            if analyzer.provider == "ollama":
+                extracted_info = analyzer._call_ollama(extraction_prompt)
+            elif analyzer.provider == "anthropic":
+                response = analyzer.client.messages.create(
+                    model=analyzer.model,
+                    max_tokens=500,
+                    messages=[{"role": "user", "content": extraction_prompt}]
+                )
+                extracted_info = response.content[0].text
+            elif analyzer.provider == "openai":
+                response = analyzer.client.chat.completions.create(
+                    model=analyzer.model,
+                    messages=[
+                        {"role": "system", "content": "You are a data extraction assistant."},
+                        {"role": "user", "content": extraction_prompt}
+                    ],
+                    max_tokens=500
+                )
+                extracted_info = response.choices[0].message.content
+            else:
+                raise HTTPException(status_code=500, detail="AI provider not configured")
+
+            extracted_data.append({
+                "file_id": file_id,
+                "filename": file_name,
+                "extracted_info": extracted_info
+            })
+
+        if len(extracted_data) == 0:
+            raise HTTPException(status_code=404, detail="No valid documents found")
+
+        # STAGE 2: Synthesize and compare extracted data
+        synthesis_prompt = f"""You are a financial analyst. Compare and analyze the extracted data from multiple documents.
+
+ORIGINAL QUESTION: {request.question}
+
+EXTRACTED DATA FROM {len(extracted_data)} DOCUMENTS:
+
+"""
+        for item in extracted_data:
+            synthesis_prompt += f"""
+📄 **{item['filename']}:**
+{item['extracted_info']}
+
+"""
+
+        synthesis_prompt += """
+INSTRUCTIONS:
+1. Compare and contrast the data across all documents
+2. Highlight key differences and similarities
+3. Provide insights and analysis
+4. Use clear formatting with bullet points
+5. If comparing numbers, calculate differences or percentages
+6. Answer the original question comprehensively
+
+COMPARATIVE ANALYSIS:"""
+
+        # Get final synthesized answer
+        if analyzer.provider == "ollama":
+            final_answer = analyzer._call_ollama(synthesis_prompt)
+        elif analyzer.provider == "anthropic":
+            response = analyzer.client.messages.create(
+                model=analyzer.model,
+                max_tokens=2000,
+                messages=[{"role": "user", "content": synthesis_prompt}]
+            )
+            final_answer = response.content[0].text
+        elif analyzer.provider == "openai":
+            response = analyzer.client.chat.completions.create(
+                model=analyzer.model,
+                messages=[
+                    {"role": "system", "content": "You are a financial analyst assistant."},
+                    {"role": "user", "content": synthesis_prompt}
+                ],
+                max_tokens=2000
+            )
+            final_answer = response.choices[0].message.content
+        else:
+            raise HTTPException(status_code=500, detail="AI provider not configured")
+
+        response_time_ms = (time.time() - start_time) * 1000
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "answer": final_answer,
+                "documents_analyzed": len(extracted_data),
+                "file_ids": request.file_ids,
+                "response_time_ms": response_time_ms
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cross-document chat failed: {str(e)}")

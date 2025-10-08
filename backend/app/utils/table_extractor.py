@@ -6,14 +6,22 @@ from pathlib import Path
 from typing import List, Dict
 import re
 from docling.document_converter import DocumentConverter
+from .document_cache import DocumentCache
 
 
 class TableExtractor:
     """Extract tables from documents and export to Excel"""
 
     @staticmethod
-    def extract_tables_from_pdf(file_path: str) -> List[pd.DataFrame]:
-        """Extract tables from PDF using Docling (IBM's advanced PDF parser)"""
+    def extract_tables_from_pdf(file_path: str, file_id: str = None) -> List[pd.DataFrame]:
+        """Extract tables from PDF using Docling (IBM's advanced PDF parser) with caching"""
+
+        # Try to load from cache first
+        if file_id:
+            cached_tables = DocumentCache.load_tables(file_id)
+            if cached_tables is not None:
+                return cached_tables
+
         tables = []
 
         try:
@@ -50,6 +58,10 @@ class TableExtractor:
                     continue
 
             print(f"✅ Docling extracted {len(tables)} tables from PDF")
+
+            # Cache the extracted tables
+            if file_id and tables:
+                DocumentCache.save_tables(file_id, tables)
 
         except Exception as e:
             print(f"❌ Error extracting tables from PDF with Docling: {str(e)}")
@@ -209,13 +221,14 @@ class TableExtractor:
             }
 
     @staticmethod
-    def extract_and_export(file_path: str, output_dir: str) -> Dict:
+    def extract_and_export(file_path: str, output_dir: str, file_id: str = None) -> Dict:
         """Main method to extract tables and export to Excel"""
         file_extension = Path(file_path).suffix.lower()
         tables = []
 
         if file_extension == '.pdf':
-            tables = TableExtractor.extract_tables_from_pdf(file_path)
+            # Pass file_id for caching
+            tables = TableExtractor.extract_tables_from_pdf(file_path, file_id=file_id)
         elif file_extension in ['.docx', '.doc']:
             tables = TableExtractor.extract_tables_from_docx(file_path)
         elif file_extension == '.txt':

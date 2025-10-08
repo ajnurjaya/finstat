@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 
-from app.utils import DocumentParser, AIAnalyzer
+from app.utils import DocumentParser, AIAnalyzer, DocumentCache
 from app.utils.vector_store import get_vector_store
 
 router = APIRouter()
@@ -33,29 +33,72 @@ async def analyze_document(request: AnalyzeRequest):
 
         file_path = str(files[0])
 
-        # Parse document
-        parser = DocumentParser()
-        parse_result = parser.parse_document(file_path)
-
-        if not parse_result["success"]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Document parsing failed: {parse_result.get('error', 'Unknown error')}"
-            )
-
-        document_text = parse_result["text"]
-
-        # Store document in vector database for semantic search
+        # Check if document already exists in ChromaDB
         vector_store = get_vector_store()
-        vector_store.add_document(
-            file_id=request.file_id,
-            text=document_text,
-            metadata={
-                "filename": files[0].name,
-                "format": parse_result.get("format"),
-                "page_count": parse_result.get("page_count")
-            }
-        )
+        test_search = vector_store.search(query=".", file_ids=[request.file_id], top_k=1)
+
+        if test_search and len(test_search) > 0:
+            # Document already parsed and stored, retrieve it
+            print(f"📋 Document already in ChromaDB, retrieving {request.file_id}")
+            all_chunks = vector_store.collection.get(where={"file_id": request.file_id})
+
+            if all_chunks and all_chunks.get('documents'):
+                chunk_data = list(zip(all_chunks['documents'], all_chunks['metadatas']))
+                chunk_data.sort(key=lambda x: x[1].get('chunk_index', 0))
+                document_text = '\n\n'.join([chunk for chunk, _ in chunk_data])
+
+                metadata = all_chunks['metadatas'][0] if all_chunks['metadatas'] else {}
+                parse_result = {
+                    "format": metadata.get("format", "unknown"),
+                    "page_count": metadata.get("page_count")
+                }
+            else:
+                # Fallback to parsing
+                print(f"📄 ChromaDB data incomplete, parsing {request.file_id}")
+                parser = DocumentParser()
+                parse_result = parser.parse_document(file_path)
+
+                if not parse_result["success"]:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Document parsing failed: {parse_result.get('error', 'Unknown error')}"
+                    )
+
+                document_text = parse_result["text"]
+
+                vector_store.add_document(
+                    file_id=request.file_id,
+                    text=document_text,
+                    metadata={
+                        "filename": files[0].name,
+                        "format": parse_result.get("format"),
+                        "page_count": parse_result.get("page_count")
+                    }
+                )
+        else:
+            # Document not in ChromaDB, parse it
+            print(f"📄 Parsing new document {request.file_id}")
+            parser = DocumentParser()
+            parse_result = parser.parse_document(file_path)
+
+            if not parse_result["success"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Document parsing failed: {parse_result.get('error', 'Unknown error')}"
+                )
+
+            document_text = parse_result["text"]
+
+            # Store document in vector database for semantic search
+            vector_store.add_document(
+                file_id=request.file_id,
+                text=document_text,
+                metadata={
+                    "filename": files[0].name,
+                    "format": parse_result.get("format"),
+                    "page_count": parse_result.get("page_count")
+                }
+            )
 
         # Initialize AI analyzer
         analyzer = AIAnalyzer()

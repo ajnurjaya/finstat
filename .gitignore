@@ -28,6 +28,12 @@ backend/uploads/*
 backend/outputs/*
 !backend/outputs/.gitkeep
 
+# Data and cache directories
+backend/data/chroma_db/*/
+backend/data/cache/
+!backend/data/chroma_db/.gitkeep
+!backend/data/cache/.gitkeep
+
 # IDE
 .vscode/
 .idea/

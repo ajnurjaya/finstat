@@ -169,46 +169,29 @@
             addTypingIndicator();
 
             try {
-                // Ask only selected documents and combine results
-                const answers = [];
+                // Use new /chat-all endpoint for intelligent cross-document comparison
+                const fileIds = selectedDocs.map(doc => doc.file_id);
 
-                for (const doc of selectedDocs) {
-                    const response = await fetch(`${BACKEND_URL}/api/chat`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            file_id: doc.file_id,
-                            question: question,
-                            conversation_id: null  // Fresh context for each
-                        })
-                    });
+                const response = await fetch(`${BACKEND_URL}/api/chat-all`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_ids: fileIds,
+                        question: question
+                    })
+                });
 
-                    const result = await response.json();
-
-                    if (result.success) {
-                        answers.push({
-                            filename: doc.filename,
-                            answer: result.answer
-                        });
-                    }
-                }
+                const result = await response.json();
 
                 removeTypingIndicator();
 
-                // Combine answers
-                let combinedAnswer = selectedDocs.length === 1
-                    ? answers[0].answer
-                    : `**Answers from ${answers.length} selected document(s):**\n\n`;
-
-                if (selectedDocs.length > 1) {
-                    answers.forEach((item, index) => {
-                        combinedAnswer += `**📄 ${item.filename}:**\n${item.answer}\n\n`;
-                    });
+                if (result.success) {
+                    addChatMessage('assistant', result.answer);
+                } else {
+                    addChatMessage('assistant', `Sorry, something went wrong: ${result.detail || 'Unknown error'}`);
                 }
-
-                addChatMessage('assistant', combinedAnswer);
 
             } catch (error) {
                 removeTypingIndicator();

@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional
+from app.utils import DocumentCache
 
 router = APIRouter()
 
@@ -49,6 +50,14 @@ async def upload_file(file: UploadFile = File(...)):
         # Save file
         with open(file_path, 'wb') as f:
             f.write(contents)
+
+        # Save metadata with original filename
+        DocumentCache.save_metadata(file_id, {
+            "original_filename": original_filename,
+            "file_extension": file_extension,
+            "file_size": len(contents),
+            "file_type": file_extension[1:]
+        })
 
         return JSONResponse(
             status_code=200,

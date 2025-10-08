@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime
 from typing import List, Dict
 from app.utils.vector_store import get_vector_store
+from app.utils import DocumentCache
 
 router = APIRouter()
 
@@ -42,13 +43,17 @@ async def get_all_documents():
                 file_id = file_path.stem
                 file_extension = file_path.suffix
 
+                # Load original filename from metadata cache
+                metadata = DocumentCache.load_metadata(file_id)
+                display_filename = metadata.get("original_filename") if metadata else file_path.name
+
                 # Check if Excel export exists
                 excel_file = Path(OUTPUT_DIR) / f"{file_id}_tables.xlsx"
                 has_excel = excel_file.exists()
 
                 doc_info = {
                     "file_id": file_id,
-                    "filename": file_path.name,
+                    "filename": display_filename,
                     "format": file_extension[1:].upper(),  # Remove dot
                     "size": stats.st_size,
                     "size_mb": round(stats.st_size / (1024 * 1024), 2),
@@ -137,12 +142,16 @@ async def get_document_info(file_id: str):
         file_path = files[0]
         stats = file_path.stat()
 
+        # Load original filename from metadata cache
+        metadata = DocumentCache.load_metadata(file_id)
+        display_filename = metadata.get("original_filename") if metadata else file_path.name
+
         # Check for Excel
         excel_file = Path(OUTPUT_DIR) / f"{file_id}_tables.xlsx"
 
         doc_info = {
             "file_id": file_id,
-            "filename": file_path.name,
+            "filename": display_filename,
             "format": file_path.suffix[1:].upper(),
             "size": stats.st_size,
             "size_mb": round(stats.st_size / (1024 * 1024), 2),

@@ -36,7 +36,7 @@ async def extract_tables(request: ExtractTablesRequest):
 
         # Extract tables and export to Excel
         extractor = TableExtractor()
-        result = extractor.extract_and_export(file_path, OUTPUT_DIR)
+        result = extractor.extract_and_export(file_path, OUTPUT_DIR, file_id=request.file_id)
 
         if not result["success"]:
             raise HTTPException(
@@ -123,7 +123,7 @@ async def preview_tables(file_id: str):
         extractor = TableExtractor()
 
         if file_extension == '.pdf':
-            tables = extractor.extract_tables_from_pdf(file_path)
+            tables = extractor.extract_tables_from_pdf(file_path, file_id=file_id)
         elif file_extension in ['.docx', '.doc']:
             tables = extractor.extract_tables_from_docx(file_path)
         elif file_extension == '.txt':
