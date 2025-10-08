@@ -125,25 +125,61 @@ async def chat_with_document(request: ChatRequest):
         file_path = str(files[0])
         file_name = files[0].name
 
-        # Parse document if not already cached
+        # Get document text from ChromaDB or parse if not available
         cache_key = f"doc_{request.file_id}"
-        if cache_key not in conversation_store:
-            parser = DocumentParser()
-            parse_result = parser.parse_document(file_path)
 
-            if not parse_result["success"]:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Document parsing failed: {parse_result.get('error', 'Unknown error')}"
+        # First check in-memory cache
+        if cache_key in conversation_store:
+            document_text = conversation_store[cache_key]["text"]
+        else:
+            # Try to get from ChromaDB by searching for any chunk
+            vector_store = get_vector_store()
+            test_search = vector_store.search(query=".", file_ids=[request.file_id], top_k=1)
+
+            if test_search and len(test_search) > 0:
+                # Document exists in ChromaDB, retrieve all chunks
+                print(f"📋 Using cached document from ChromaDB for {request.file_id}")
+                all_chunks = vector_store.collection.get(where={"file_id": request.file_id})
+                if all_chunks and all_chunks.get('documents'):
+                    # Reconstruct full text from chunks (sorted by chunk_index)
+                    chunk_data = list(zip(all_chunks['documents'], all_chunks['metadatas']))
+                    chunk_data.sort(key=lambda x: x[1].get('chunk_index', 0))
+                    document_text = '\n\n'.join([chunk for chunk, _ in chunk_data])
+
+                    # Cache in memory
+                    conversation_store[cache_key] = {
+                        "text": document_text,
+                        "format": all_chunks['metadatas'][0].get('format', 'unknown') if all_chunks['metadatas'] else 'unknown'
+                    }
+                else:
+                    # ChromaDB has metadata but no documents - parse again
+                    raise Exception("ChromaDB data corrupted - no documents found")
+            else:
+                # Not in ChromaDB, need to parse
+                print(f"📄 Document not in ChromaDB, parsing {request.file_id}")
+                parser = DocumentParser()
+                parse_result = parser.parse_document(file_path)
+
+                if not parse_result["success"]:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Document parsing failed: {parse_result.get('error', 'Unknown error')}"
+                    )
+
+                document_text = parse_result["text"]
+
+                # Cache in memory
+                conversation_store[cache_key] = {
+                    "text": document_text,
+                    "format": parse_result.get("format")
+                }
+
+                # Add to ChromaDB for future use
+                vector_store.add_document(
+                    file_id=request.file_id,
+                    text=document_text,
+                    metadata={"format": parse_result.get("format")}
                 )
-
-            # Cache the document text
-            conversation_store[cache_key] = {
-                "text": parse_result["text"],
-                "format": parse_result.get("format")
-            }
-
-        document_text = conversation_store[cache_key]["text"]
 
         # Get or create conversation history
         conv_id = request.conversation_id or f"conv_{request.file_id}"

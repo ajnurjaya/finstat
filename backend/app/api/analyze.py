@@ -124,7 +124,37 @@ async def get_document_text(file_id: str):
 
         file_path = str(files[0])
 
-        # Parse document
+        # Try to get from ChromaDB first
+        vector_store = get_vector_store()
+        test_search = vector_store.search(query=".", file_ids=[file_id], top_k=1)
+
+        if test_search and len(test_search) > 0:
+            # Document exists in ChromaDB, retrieve all chunks
+            print(f"📋 Retrieving text from ChromaDB for {file_id}")
+            all_chunks = vector_store.collection.get(where={"file_id": file_id})
+
+            if all_chunks and all_chunks.get('documents'):
+                # Reconstruct full text from chunks (sorted by chunk_index)
+                chunk_data = list(zip(all_chunks['documents'], all_chunks['metadatas']))
+                chunk_data.sort(key=lambda x: x[1].get('chunk_index', 0))
+                document_text = '\n\n'.join([chunk for chunk, _ in chunk_data])
+
+                metadata = all_chunks['metadatas'][0] if all_chunks['metadatas'] else {}
+
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "success": True,
+                        "file_id": file_id,
+                        "text": document_text,
+                        "format": metadata.get("format", "unknown"),
+                        "page_count": metadata.get("page_count"),
+                        "metadata": {k: v for k, v in metadata.items() if k not in ["file_id", "chunk_index", "total_chunks"]}
+                    }
+                )
+
+        # Not in ChromaDB, parse document
+        print(f"📄 Text not in ChromaDB, parsing {file_id}")
         parser = DocumentParser()
         parse_result = parser.parse_document(file_path)
 
@@ -133,6 +163,16 @@ async def get_document_text(file_id: str):
                 status_code=400,
                 detail=f"Document parsing failed: {parse_result.get('error', 'Unknown error')}"
             )
+
+        # Add to ChromaDB for future use
+        vector_store.add_document(
+            file_id=file_id,
+            text=parse_result["text"],
+            metadata={
+                "format": parse_result.get("format"),
+                "page_count": parse_result.get("page_count")
+            }
+        )
 
         return JSONResponse(
             status_code=200,

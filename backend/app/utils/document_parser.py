@@ -27,16 +27,19 @@ class DocumentParser:
             # Docling preserves document structure, tables, and formatting
             full_text = result.document.export_to_markdown()
 
-            # Also get page-by-page breakdown if available
-            pages_content = []
+            # Get page count from result metadata
             page_count = 0
-
-            # Docling returns structured content - extract pages
-            for item in result.document.iterate_items():
-                if hasattr(item, 'prov'):
-                    page_num = item.prov[0].page if item.prov else page_count + 1
-                    if page_num > page_count:
-                        page_count = page_num
+            if hasattr(result, 'pages') and result.pages:
+                page_count = len(result.pages)
+            elif hasattr(result.document, 'pages'):
+                page_count = result.document.pages
+            else:
+                # Fallback: count from items
+                for item in result.document.iterate_items():
+                    if hasattr(item, 'prov') and item.prov:
+                        for prov in item.prov:
+                            if hasattr(prov, 'page') and prov.page:
+                                page_count = max(page_count, prov.page)
 
             # Get tables separately for better structure
             tables = []

@@ -1,0 +1,203 @@
+
+================================================================================
+📊 LOG ENTRY #5 of 5
+================================================================================
+🕐 Timestamp: 2025-10-08T11:08:42.249585
+🔍 Question: berapa jumlah liabilitas?
+📄 Document: c84a56bf-258d-46b7-9eb2-7c122aaca6c0.pdf
+🤖 Models: BAAI/bge-m3 + ollama/llama3.1:8b-instruct-q5_K_M
+⏱️  Response time: 35840.2ms
+
+💬 Answer:
+Berikut adalah jumlah liabilitas yang tercantum dalam dokumen:
+
+| Liabilitas | 2025 | 2024 |
+| --- | --- | --- |
+| Total Liabilitas Jangka Pendek | 767,662 juta Rupiah | 382,100 juta Rupiah |
+| Total Liabilitas Jangka Panjang | 3,729,845 juta Rupiah | 3,506,773 juta Rupiah |
+| Total Liabilitas | 4,497,507 juta Rupiah | 3,888,873 juta Rupiah |
+
+Namun, jika Anda ingin tahu jumlah liabilitas yang masih terutang pada tanggal 30 Juni 2025, maka jawabannya adalah:
+
+Rp364.430 juta
+
+================================================================================
+📦 RETRIEVED CHUNKS (Top 10 of 20 results):
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #1 │ Distance: 0.7683 │ Length: 1000 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_939
+────────────────────────────────────────────────────────────────────────────────
+
+with related parties are as follows: (continued)
+
+|                                        | 2025       | 2024       |                                          |
+|----------------------------------------|------------|------------|------------------------------------------|
+| Liabilitas (lanjutan)                  |            |            | Liabilities (continued)                  |
+| Pinjaman:                              |            |            | Loans:                                   |
+| - Bank                                 | 6,295,829  | 6,094,563  | Bank -                                   |
+| - QNBI                                 | 499,361    | -          | QNBI -                                   |
+|                                        | 6,795,190  | 6,094,563  |                                          |
+| Liabilitas sewa:                       |            |            | Lease liabilities:                       |
+| - Badan usaha milik negara             | 5,342,263  
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #2 │ Distance: 0.7891 │ Length: 464 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_964
+────────────────────────────────────────────────────────────────────────────────
+
+-hak-guna usaha pada saat penyelesaian komitmen.
+
+Pada tanggal 30 Juni 2025, jumlah liabilitas yang masih terutang adalah sebesar Rp364.430, terdiri dari liabilitas jangka panjang kepada EPID sebesar Rp292.504, dan liabilitas dengan Mitratel sebesar Rp71.926.
+
+- b. Kontinjensi
+
+Grup memiliki liabilitas kontinjensi sehubungan dengan tuntutan hukum yang timbul dari usaha normal. Grup tidak mengharapkan liabilitas material akan timbul dari liabilitas kontinjensi.
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #3 │ Distance: 0.8154 │ Length: 470 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_368
+────────────────────────────────────────────────────────────────────────────────
+
+s keuangan (lanjutan)
+
+Pengakuan awal (lanjutan)
+
+Liabilitas  keuangan  Grup  meliputi  utang usaha, utang pengadaan, akrual, pinjaman dan  utang  obligasi,  utang  pihak  berelasi, uang muka pelanggan, dan liabilitas keuangan jangka pendek dan jangka panjang lain-lain. Liabilitas keuangan diklasifikasikan sebagai liabilitas jangka panjang jika jatuh tempo melebihi 12 bulan dan  sebagai  liabilitas  jangka  pendek  jika jatuh tempo yang tersisa kurang dari 12 bulan.
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #4 │ Distance: 0.8155 │ Length: 976 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_778
+────────────────────────────────────────────────────────────────────────────────
+
+bond will increase plan liabilities.
+
+15.  LOANS
+
+|                                         | 2025        | 2024        |                              |
+|-----------------------------------------|-------------|-------------|------------------------------|
+| Pinjaman                                | 12,700,100  | 9,050,000   | Loans                        |
+| Dikurangi:                              |             |             | Less:                        |
+| Biaya transaksi yang belum diamortisasi | (12,088)    | (10,337)    | Unamortised transaction cost |
+|                                         | 12,688,012  | 9,039,663   |                              |
+| Dikurangi:                              |             |             | Less:                        |
+| Bagian jangka pendek                    | (3,997,664) | (1,549,800) | Current maturities           |
+| Bagian jangka panjang                   | 8,690,348   | 7,489,863   | Non-current portion          |
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #5 │ Distance: 0.8241 │ Length: 457 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_830
+────────────────────────────────────────────────────────────────────────────────
+
+uipment' in the statement of financial position.
+
+|                  | 2025       | 2024       |                    |
+|------------------|------------|------------|--------------------|
+| Liabilitas sewa: |            |            | Lease liabilities: |
+| - Lancar         | 6,765,297  | 6,509,037  | Current -          |
+| - Tidak lancar   | 32,918,380 | 33,457,877 | Non-current -      |
+|                  | 39,683,677 | 39,966,914 |                    |
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #6 │ Distance: 0.8347 │ Length: 361 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_965
+────────────────────────────────────────────────────────────────────────────────
+
+aterial akan timbul dari liabilitas kontinjensi.
+
+## NOTES TO THE INTERIM CONSOLIDATED FINANCIAL STATEMENTS 30 JUNE 2025 AND 2024
+
+(Expressed in millions of Rupiah, and where applicable, in thousands of U.S. Dollar, unless otherwise stated)
+
+## 28.  SIGNIFICANT COMMITMENTS AND CONTINGENCIES (continued)
+
+- a. Commitments (continued)
+2. (iv)  Others (continued)
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #7 │ Distance: 0.8427 │ Length: 497 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_373
+────────────────────────────────────────────────────────────────────────────────
+
+ies (continued)
+
+Initial recognition (continued)
+
+The Group's financial liabilities include trade payables,  procurement  payable,  accruals, loans and bonds payable, due to related parties, deposits from customer, and other current and non-current financial  liabilities.  Financial  liabilities  are classified as non-current liabilities when the remaining maturity is more than 12 months, and as current liabilities when the remaining maturity is less than 12 months.
+
+## Subsequent measurement
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #8 │ Distance: 0.8471 │ Length: 1000 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_1098
+────────────────────────────────────────────────────────────────────────────────
+
+tting financial assets and financial liabilities
+
+|                                            | A           | B         | C           | Neto/ Net   |
+|--------------------------------------------|-------------|-----------|-------------|-------------|
+| Aset keuangan/ Financial assets            |             |           |             |             |
+| Piutang usaha/ Trade receivables           |             |           |             |             |
+| 30/06/2025                                 | 4,247,614   | (307,045) | 3,940,569   | 3,940,569   |
+| 31/12/2024                                 | 3,571,271   | (304,683) | 3,266,588   | 3,266,588   |
+| Liabilitas keuangan/ Financial liabilities |             |           |             |             |
+| Utang usaha/ Trade payables                |             |           |             |             |
+| 30/06/2025                                 | (1,404,312) | 307,045   | (1,097,267) | (1,097,267) |
+| 31/12/2024                             
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #9 │ Distance: 0.8516 │ Length: 480 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_1088
+────────────────────────────────────────────────────────────────────────────────
+
+an liabilitas keuangan jangka panjang lain-lain.
+
+(i) Others comprise of refundable deposits from customers, other current financial liabilities, due to related parties and other non-current financial liabilities.
+
+## PT INDOSAT Tbk DAN ENTITAS ANAK/ AND SUBSIDIARIES
+
+## Halaman 145 Page
+
+## CATATAN ATAS LAPORAN KEUANGAN KONSOLIDASIAN INTERIM 30 JUNI 2025 DAN 2024
+
+(Dinyatakan dalam jutaan Rupiah, dan jika disebutkan khusus, dalam ribuan U.S. Dollar , kecuali dinyatakan lain)
+
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+Rank #10 │ Distance: 0.8554 │ Length: 453 chars
+Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_776
+────────────────────────────────────────────────────────────────────────────────
+
+o yang paling signifikan adalah sebagai berikut:
+
+## Perubahan imbal hasil obligasi
+
+Penurunan  pada  imbal  hasil  obligasi  Pemerintah berperingkat  tinggi  dapat  menyebabkan  kenaikan liabilitas program.
+
+## 15.  PINJAMAN
+
+NOTES TO THE INTERIM CONSOLIDATED FINANCIAL STATEMENTS 30 JUNE 2025 AND 2024
+
+(Expressed in millions of Rupiah, and where applicable, in thousands of U.S. Dollar, unless otherwise stated)
+
+## 14.  EMPLOYEE BENEFITS (continued)
+
+================================================================================
+

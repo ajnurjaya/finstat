@@ -49,13 +49,23 @@ def export_chunks_to_excel(file_id: str = None, output_file: str = None):
                 'chunks': []
             }
 
+        # Get embedding dimensions safely
+        embedding_dims = 0
+        try:
+            if all_data.get('embeddings') is not None and i < len(all_data['embeddings']):
+                emb = all_data['embeddings'][i]
+                if emb is not None:
+                    embedding_dims = len(emb)
+        except:
+            embedding_dims = 0
+
         files[doc_file_id]['chunks'].append({
             'chunk_id': chunk_id,
             'chunk_index': metadata.get('chunk_index', 0),
             'total_chunks': metadata.get('total_chunks', 0),
             'text': all_data['documents'][i],
             'text_length': len(all_data['documents'][i]),
-            'embedding_dims': len(all_data['embeddings'][i]) if all_data['embeddings'] else 0,
+            'embedding_dims': embedding_dims,
             'metadata': metadata
         })
 
