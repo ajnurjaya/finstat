@@ -9,6 +9,8 @@ from typing import List, Optional
 from app.utils import DocumentParser, AIAnalyzer
 from app.utils.vector_store import get_vector_store
 from app.utils.query_logger import get_query_logger
+from app.utils.query_processor import FinancialQueryProcessor
+from app.utils.hybrid_search import HybridSearchEngine
 
 router = APIRouter()
 
@@ -41,75 +43,80 @@ class ChatResponse(BaseModel):
     file_id: str
 
 
-def _find_relevant_context_hybrid(file_id: str, question: str, document_text: str, max_chars: int = 20000) -> tuple[str, list, list]:
+def _find_relevant_context_optimized(file_id: str, question: str, document_text: str, max_chars: int = 20000) -> tuple[str, list, dict]:
     """
-    Hybrid search: Combines vector similarity search with keyword matching.
-    This ensures we don't miss exact matches (like names) while leveraging semantic search.
+    OPTIMIZED Hybrid Search with:
+    - Financial query processing
+    - BM25 keyword scoring
+    - 3-way fusion (Vector 60% + Keyword 30% + Metadata 10%)
     """
     vector_store = get_vector_store()
 
-    # 1. Vector search for semantic similarity
-    vector_results = vector_store.search(query=question, file_ids=[file_id], top_k=20)
+    # 1. Analyze query with financial domain awareness
+    query_processor = FinancialQueryProcessor()
+    analysis = query_processor.analyze(question)
 
-    # Debug logging
-    print(f"\n🔍 Hybrid Search Debug:")
+    print(f"\n🔍 Optimized Hybrid Search:")
     print(f"   Query: {question}")
-    print(f"   File ID: {file_id}")
-    print(f"   Vector results: {len(vector_results)}")
+    print(f"   Intent: {analysis.intent}")
+    print(f"   Keywords: {analysis.keywords}")
+    print(f"   Expanded Terms: {analysis.expanded_terms}")
+    print(f"   Cross-doc: {analysis.is_cross_document}")
 
-    # 2. Extract potential keywords (names, specific terms)
-    import re
-    # Look for capitalized words that might be names or specific terms
-    keywords = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', question)
-    print(f"   Detected keywords: {keywords}")
+    # 2. Perform advanced hybrid search
+    hybrid_engine = HybridSearchEngine(vector_store)
+    search_results = hybrid_engine.search(
+        query=question,
+        expanded_terms=analysis.expanded_terms,
+        file_ids=[file_id],
+        top_k=15,
+        use_reranking=False  # Enable later for +15-30% accuracy
+    )
 
-    # 3. Keyword-based boosting: Find chunks with exact keyword matches
-    keyword_matched_chunks = []
-    if keywords and document_text:
-        doc_chunks = document_text.split('\n\n')
-        for chunk in doc_chunks:
-            for keyword in keywords:
-                if keyword.lower() in chunk.lower():
-                    keyword_matched_chunks.append(chunk)
-                    print(f"   ✅ Keyword match found: '{keyword}' in chunk")
-                    break
+    if not search_results:
+        print("   ⚠️  No results found")
+        return "", [], {}
 
-    # 4. Combine results: keyword matches first, then vector results
+    # 3. Combine top results into context
     combined_chunks = []
     total_chars = 0
 
-    # Add keyword-matched chunks first (highest priority)
-    for chunk in keyword_matched_chunks[:5]:  # Max 5 keyword chunks
-        if total_chars + len(chunk) <= max_chars:
-            combined_chunks.append(chunk)
-            total_chars += len(chunk)
-
-    # Then add vector search results
-    for result in vector_results:
-        chunk_text = result['text']
-        # Skip if already added from keyword matching
-        if chunk_text in combined_chunks:
-            continue
-
-        if total_chars + len(chunk_text) <= max_chars:
-            combined_chunks.append(chunk_text)
-            total_chars += len(chunk_text)
+    for result in search_results:
+        if total_chars + len(result.text) <= max_chars:
+            combined_chunks.append(result.text)
+            total_chars += len(result.text)
         else:
-            # Add partial chunk to fill remaining space
+            # Add partial chunk
             remaining = max_chars - total_chars
             if remaining > 100:
-                combined_chunks.append(chunk_text[:remaining])
+                combined_chunks.append(result.text[:remaining])
             break
 
-    print(f"   ✅ Combined {len(combined_chunks)} chunks ({total_chars} chars)")
-    print(f"      - {len(keyword_matched_chunks[:5])} from keyword matching")
-    print(f"      - {len(combined_chunks) - len(keyword_matched_chunks[:5])} from vector search")
+    # Log score breakdown for top result
+    if search_results:
+        top_result = search_results[0]
+        print(f"\n   📊 Top Result Scores:")
+        print(f"      Final: {top_result.score:.4f}")
+        print(f"      Vector: {top_result.vector_score:.4f}")
+        print(f"      Keyword (BM25): {top_result.keyword_score:.4f}")
+        print(f"      Metadata: {top_result.metadata_score:.4f}")
 
-    if not combined_chunks:
-        print("   ⚠️  No results found - returning empty context")
-        return "", vector_results, keywords
+    print(f"   ✅ Retrieved {len(combined_chunks)} chunks ({total_chars} chars)")
 
-    return '\n\n'.join(combined_chunks), vector_results, keywords
+    # Convert SearchResult objects to dict for logging
+    results_for_logging = [
+        {'text': r.text, 'score': r.score, 'metadata': r.metadata}
+        for r in search_results
+    ]
+
+    analysis_dict = {
+        'intent': analysis.intent,
+        'keywords': analysis.keywords,
+        'expanded_terms': analysis.expanded_terms,
+        'is_cross_document': analysis.is_cross_document
+    }
+
+    return '\n\n'.join(combined_chunks), results_for_logging, analysis_dict
 
 
 @router.post("/chat")
@@ -194,9 +201,9 @@ async def chat_with_document(request: ChatRequest):
         # Build context with conversation history
         conversation_history = conversation_store[conv_id]
 
-        # Search for relevant context using hybrid search
-        # Combines vector similarity with keyword matching for best accuracy
-        relevant_context, vector_results, keywords = _find_relevant_context_hybrid(request.file_id, request.question, document_text)
+        # Search for relevant context using OPTIMIZED hybrid search
+        # Financial-aware + BM25 + 3-way fusion for maximum accuracy
+        relevant_context, vector_results, analysis_dict = _find_relevant_context_optimized(request.file_id, request.question, document_text)
 
         # Create prompt with document context
         context_prompt = f"""You are a helpful financial analyst assistant. Answer the user's question using ONLY the information provided in the document below.
@@ -267,7 +274,7 @@ ANSWER:"""
             llm_model=analyzer.model,
             llm_provider=analyzer.provider,
             vector_results=vector_results,
-            keyword_matches=keywords,
+            keyword_matches=analysis_dict.get('keywords', []),
             total_context_chars=len(relevant_context),
             response_time_ms=response_time_ms,
             conversation_id=conv_id
@@ -372,7 +379,10 @@ async def chat_with_all_documents(request: ChatAllRequest):
             if not files:
                 continue
 
-            file_name = files[0].name
+            # Load original filename from metadata cache
+            from app.utils import DocumentCache
+            metadata = DocumentCache.load_metadata(file_id)
+            file_name = metadata.get("original_filename") if metadata else files[0].name
 
             # Get document text from ChromaDB
             cache_key = f"doc_{file_id}"
@@ -392,8 +402,8 @@ async def chat_with_all_documents(request: ChatAllRequest):
                 else:
                     continue
 
-            # Find relevant context for this document
-            relevant_context, _, _ = _find_relevant_context_hybrid(file_id, request.question, document_text)
+            # Find relevant context for this document using optimized search
+            relevant_context, _, _ = _find_relevant_context_optimized(file_id, request.question, document_text)
 
             # Extract specific information using LLM
             extraction_prompt = f"""Extract the specific information requested from this document.
