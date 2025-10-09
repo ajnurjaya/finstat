@@ -30,7 +30,8 @@ class AIAnalyzer:
             if self.openai_key:
                 self.client = OpenAI(api_key=self.openai_key)
         elif self.provider == "ollama":
-            self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+            # Support both OLLAMA_BASE_URL (Docker) and OLLAMA_URL (legacy)
+            self.ollama_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_URL", "http://localhost:11434")
             self.model = os.getenv("OLLAMA_MODEL", "mistral")
             self.client = None
 

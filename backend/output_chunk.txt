@@ -2,202 +2,234 @@
 ================================================================================
 📊 LOG ENTRY #5 of 5
 ================================================================================
-🕐 Timestamp: 2025-10-08T11:08:42.249585
-🔍 Question: berapa jumlah liabilitas?
-📄 Document: c84a56bf-258d-46b7-9eb2-7c122aaca6c0.pdf
+🕐 Timestamp: 2025-10-09T12:14:53.575722
+🔍 Question: how to troubleshooting umpt?
+📄 Document: a3169df7-c2b0-41de-a3d4-5d0525190577.pdf
 🤖 Models: BAAI/bge-m3 + ollama/llama3.1:8b-instruct-q5_K_M
-⏱️  Response time: 35840.2ms
+⏱️  Response time: 21255.47ms
 
 💬 Answer:
-Berikut adalah jumlah liabilitas yang tercantum dalam dokumen:
+Untuk melakukan troubleshooting pada UMPT, ikuti langkah-langkah berikut:
 
-| Liabilitas | 2025 | 2024 |
-| --- | --- | --- |
-| Total Liabilitas Jangka Pendek | 767,662 juta Rupiah | 382,100 juta Rupiah |
-| Total Liabilitas Jangka Panjang | 3,729,845 juta Rupiah | 3,506,773 juta Rupiah |
-| Total Liabilitas | 4,497,507 juta Rupiah | 3,888,873 juta Rupiah |
-
-Namun, jika Anda ingin tahu jumlah liabilitas yang masih terutang pada tanggal 30 Juni 2025, maka jawabannya adalah:
-
-Rp364.430 juta
+1. Buka MML Command di site yang bersangkutan dan eksekusi command berikut:
+   - LST SCTPLNK:;
+   - LST IPRT:;
+   - LST VLANMAP:;
+   - LST DEVIP:;
+   - DSP ETHPORT;
 
 ================================================================================
-📦 RETRIEVED CHUNKS (Top 10 of 20 results):
+📦 RETRIEVED CHUNKS (Top 10 of 15 results):
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #1 │ Distance: 0.7683 │ Length: 1000 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_939
+Rank #1 │ Distance: 0 │ Length: 727 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-with related parties are as follows: (continued)
+untuk commissioning UMPT adalah sebagai berikut:
 
-|                                        | 2025       | 2024       |                                          |
-|----------------------------------------|------------|------------|------------------------------------------|
-| Liabilitas (lanjutan)                  |            |            | Liabilities (continued)                  |
-| Pinjaman:                              |            |            | Loans:                                   |
-| - Bank                                 | 6,295,829  | 6,094,563  | Bank -                                   |
-| - QNBI                                 | 499,361    | -          | QNBI -                                   |
-|                                        | 6,795,190  | 6,094,563  |                                          |
-| Liabilitas sewa:                       |            |            | Lease liabilities:                       |
-| - Badan usaha milik negara             | 5,342,263  
+1. Back up data konfigurasi NE.
+2. Pada  eNodeB,  jalankan  perintah ULD  LICENSE untuk  membuat  cadangan  file lisensi.
+3. Pada  eNodeB,  jalankan  perintah BLK  CELL untuk  memblokir  semua  sel  eNodeB tersebut.
+4. Matikan tegangan listrik pada eNodeB.
+5. Catat  semua  kabel  yang  terhubung  di  UMPT  dan  lepaskan,  lalu  lepaskan  baut menggunakan obeng dan taruh UMPT yang rusak.
+6. Pasang  UMPT board baru  dan  pasang  kembali  kabel-kabel  yang  terhubung  sesuai dengan catatan dan kencangkan dengan baut.
+7. Nyalakan tegangan listrik pada eNodeB.
+8. Setting IP Laptop, misalnya setting IP laptop ke IP 192.168.0.51
+9. Open browser https://192.168.0.49/login.html
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #2 │ Distance: 0.7891 │ Length: 464 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_964
+Rank #2 │ Distance: 0 │ Length: 459 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
--hak-guna usaha pada saat penyelesaian komitmen.
+ang baru.
 
-Pada tanggal 30 Juni 2025, jumlah liabilitas yang masih terutang adalah sebesar Rp364.430, terdiri dari liabilitas jangka panjang kepada EPID sebesar Rp292.504, dan liabilitas dengan Mitratel sebesar Rp71.926.
+## 4.3 Prosedur Replacing UMPT Board.
 
-- b. Kontinjensi
+Board UMPT adalah salah satu komponen di BBU3900 yang merupakan pusat kontrol dan  transmisi  eNodeB.  Dalam  penggantian board UMPT  ini  akan  menyebabkan service mati.
 
-Grup memiliki liabilitas kontinjensi sehubungan dengan tuntutan hukum yang timbul dari usaha normal. Grup tidak mengharapkan liabilitas material akan timbul dari liabilitas kontinjensi.
+<!-- image -->
+
+## Gambar 53 UMPT (Universal Main Processing &amp; Transmission Unit)
+
+Gambar 22 BBU3900 Tampak Depan
+
+<!-- image -->
+
+Sebelum replace UMPT,  dibutuhkan beberapa alat dan software yang perlu dipersiapkan sebelumnya, yaitu
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #3 │ Distance: 0.8154 │ Length: 470 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_368
+Rank #3 │ Distance: 0 │ Length: 459 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-s keuangan (lanjutan)
+al Transmission Processing Unit)
 
-Pengakuan awal (lanjutan)
+<!-- image -->
 
-Liabilitas  keuangan  Grup  meliputi  utang usaha, utang pengadaan, akrual, pinjaman dan  utang  obligasi,  utang  pihak  berelasi, uang muka pelanggan, dan liabilitas keuangan jangka pendek dan jangka panjang lain-lain. Liabilitas keuangan diklasifikasikan sebagai liabilitas jangka panjang jika jatuh tempo melebihi 12 bulan dan  sebagai  liabilitas  jangka  pendek  jika jatuh tempo yang tersisa kurang dari 12 bulan.
+1. Login LMT eNodeB atau OSS (MAE).
+2. Ketikkan ' BLK BRD ', pilih board UTRP yang rusak dan running untuk memblokir board. Jika tidak mengetahui posisi board ketikkan dan running ' LST BRD '.
+3. Catat  semua  kabel  yang  terhubung  di  UTRP  dan  lepaskan,  lalu  lepaskan  baut menggunakan obeng dan taruh UTRP yang rusak.
+
+Versi 1.1
+
+Subdir. GNO
+
+Tanggal 22 Feb 2024
+
+<!-- image -->
+
+## Direktorat Network
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #4 │ Distance: 0.8155 │ Length: 976 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_778
+Rank #4 │ Distance: 0 │ Length: 457 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-bond will increase plan liabilities.
+UpEpGroupId=0;
 
-15.  LOANS
+Gambar 24 ADD S1
 
-|                                         | 2025        | 2024        |                              |
-|-----------------------------------------|-------------|-------------|------------------------------|
-| Pinjaman                                | 12,700,100  | 9,050,000   | Loans                        |
-| Dikurangi:                              |             |             | Less:                        |
-| Biaya transaksi yang belum diamortisasi | (12,088)    | (10,337)    | Unamortised transaction cost |
-|                                         | 12,688,012  | 9,039,663   |                              |
-| Dikurangi:                              |             |             | Less:                        |
-| Bagian jangka pendek                    | (3,997,664) | (1,549,800) | Current maturities           |
-| Bagian jangka panjang                   | 8,690,348   | 7,489,863   | Non-current portion          |
+<!-- image -->
+
+End  Point  Group  Config  Flag:  Karena  jenis  S1  yang  akan  di-define  dalam  hal  ini merupakan End Point hanya untuk User Plane maka dipilih 'UP\_CFG (Up Config)'. Perlu ditambahkan routing di UMPT untuk memastikan routing ke arah SGW.
+
+ADD  IPRT: RTIDX=20, SN=7, SBT=BASE\_BOARD,  DSTIP="10.40.132.96", DSTMASK="255.255.255.224", RTTYPE=NEXTHOP,
+
+NEXTHOP="10.166.233.222", DESCRI="to S-PGW"; Selesai
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #5 │ Distance: 0.8241 │ Length: 457 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_830
+Rank #5 │ Distance: 0 │ Length: 1000 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-uipment' in the statement of financial position.
+## Gambar 54 LBBP (LTE Baseband Processing Unit)
 
-|                  | 2025       | 2024       |                    |
-|------------------|------------|------------|--------------------|
-| Liabilitas sewa: |            |            | Lease liabilities: |
-| - Lancar         | 6,765,297  | 6,509,037  | Current -          |
-| - Tidak lancar   | 32,918,380 | 33,457,877 | Non-current -      |
-|                  | 39,683,677 | 39,966,914 |                    |
+1. Login LMT eNodeB atau OSS (MAE).
+2. Ketikkan  ' BLK BRD ',  pilih board LBBP/UBBP yang rusak dan running untuk memblokir board . Jika tidak mengetahui posisi board ketikkan dan running ' LST BRD '.
+3. Catat semua kabel yang terhubung di LBBP/UBBP dan lepaskan, lalu lepaskan baut menggunakan obeng dan taruh LBBP/UBBP yang rusak.
+4. Pasang LBBP/UBBP board baru dan pasang kembali kabel-kabel yang terhubung sesuai dengan catatan dan kencangkan dengan baut.
+5. Ketikkan ' LST  ALMAF ' dan running . Lihat apakah ada alarm terkait LBBP/UBBP, jika ada diclear -kan terlebih dahulu dan jika tidak lanjut ke langkah berikutnya.
+6. Ketikkan ' DSP BRDVER ' dan running . Akan terlihat versi software yang sedang dipakai  oleh  LBBP/UBBP,  periksa  apakah  sudah  benar.  Jika  belum,  ketikkan ' ACT SOFTWARE ' untuk mengaktifkan versi software yang seharusnya.
+7. Ketikkan  ' UBL  BRD '  pilih board LBBP/UBBP  yang  baru  dan running untuk membuka blok
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #6 │ Distance: 0.8347 │ Length: 361 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_965
+Rank #6 │ Distance: 0 │ Length: 404 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-aterial akan timbul dari liabilitas kontinjensi.
+mua sel yang bekerja dalam mode LTE.
+7. Selesai.
 
-## NOTES TO THE INTERIM CONSOLIDATED FINANCIAL STATEMENTS 30 JUNE 2025 AND 2024
+## 4.6 Prosedur Replacing UTRP Board
 
-(Expressed in millions of Rupiah, and where applicable, in thousands of U.S. Dollar, unless otherwise stated)
+UTRP  bersama  UMPT  merupakan  pusat  kontrol  dan  transmisi  eNodeB.  UTRP  ini adalah  wujud  ekspansi  dari  UMPT  jika  membutuhkan transmisi yang  banyak.  Dalam mengganti UTRP board ini akan menyebabkan service yang dibawanya mati.
 
-## 28.  SIGNIFICANT COMMITMENTS AND CONTINGENCIES (continued)
+Gambar 56 UTRP (The Universal Transmission Processing Unit)
 
-- a. Commitments (continued)
-2. (iv)  Others (continued)
+<!-- image -->
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #7 │ Distance: 0.8427 │ Length: 497 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_373
+Rank #7 │ Distance: 0 │ Length: 421 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-ies (continued)
+UMPT (eNodeB), LMT, iMaster MAE (OSS).
 
-Initial recognition (continued)
+## UMPT
 
-The Group's financial liabilities include trade payables,  procurement  payable,  accruals, loans and bonds payable, due to related parties, deposits from customer, and other current and non-current financial  liabilities.  Financial  liabilities  are classified as non-current liabilities when the remaining maturity is more than 12 months, and as current liabilities when the remaining maturity is less than 12 months.
+UMPT  board  adalah  bagian  dari  enodeB  dari  sistem  OAM  yang  terinstal  di  main subrack eNodeB. UMPT ini terhubung dengan switch atau router.
 
-## Subsequent measurement
+Tanggal 22 Feb 2024
+
+<!-- image -->
+
+Direktorat Network
+
+## LMT/PC
+
+Web LMT adalah GUI (Graphic User Interface) dari RNC dan NodeB yang berfungsi memanage database konfigurasi, troubleshooting , dll.
+
+## iMaster MAE (OSS)
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #8 │ Distance: 0.8471 │ Length: 1000 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_1098
+Rank #8 │ Distance: 0 │ Length: 492 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-tting financial assets and financial liabilities
+# 3.9 Prosedur Troubleshooting Masalah Transmisi
 
-|                                            | A           | B         | C           | Neto/ Net   |
-|--------------------------------------------|-------------|-----------|-------------|-------------|
-| Aset keuangan/ Financial assets            |             |           |             |             |
-| Piutang usaha/ Trade receivables           |             |           |             |             |
-| 30/06/2025                                 | 4,247,614   | (307,045) | 3,940,569   | 3,940,569   |
-| 31/12/2024                                 | 3,571,271   | (304,683) | 3,266,588   | 3,266,588   |
-| Liabilitas keuangan/ Financial liabilities |             |           |             |             |
-| Utang usaha/ Trade payables                |             |           |             |             |
-| 30/06/2025                                 | (1,404,312) | 307,045   | (1,097,267) | (1,097,267) |
-| 31/12/2024                             
+Dalam proses konfigurasi koneksi S1 Interface, X2 Interface atau IP Clock Interface terkadang  ditemui  masalah  yang  berhubungan  dengan  transmisi.  Berikut  cara  dalam troubleshooting masalah transmisi sambil berkoordinasi dengan tim transmisi (Telkom).
+
+## 3.9.1 Mengumpulkan Data Transmisi
+
+1. Buka MML Command di site yang bersangkutan dan eksekusi command berikut: LST SCTPLNK:;
+
+LST IPRT:;
+
+LST VLANMAP:;
+
+LST DEVIP:;
+
+DSP ETHPORT:;
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #9 │ Distance: 0.8516 │ Length: 480 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_1088
+Rank #9 │ Distance: 0 │ Length: 367 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-an liabilitas keuangan jangka panjang lain-lain.
+k mengalami gangguan service baik sms atau telp.
 
-(i) Others comprise of refundable deposits from customers, other current financial liabilities, due to related parties and other non-current financial liabilities.
+1. Lepaskan baut dengan obeng.
+2. Tarik modul UBFA dan taruh di kotak penyimpanan.
+3. Ganti dengan modul UBFA baru dan kencangkan baut dengan obeng.
+4. Selesai.
 
-## PT INDOSAT Tbk DAN ENTITAS ANAK/ AND SUBSIDIARIES
+Gambar 57 FAN
 
-## Halaman 145 Page
+<!-- image -->
 
-## CATATAN ATAS LAPORAN KEUANGAN KONSOLIDASIAN INTERIM 30 JUNI 2025 DAN 2024
+Tanggal 22 Feb 2024
 
-(Dinyatakan dalam jutaan Rupiah, dan jika disebutkan khusus, dalam ribuan U.S. Dollar , kecuali dinyatakan lain)
+<!-- image -->
+
+## Radio Access Network 4G SOP/SMP RAN Huawei
+
+## 4.8 Prosedur Replacing DCDU-01 Module
 
 ================================================================================
 
 ────────────────────────────────────────────────────────────────────────────────
-Rank #10 │ Distance: 0.8554 │ Length: 453 chars
-Chunk ID: c84a56bf-258d-46b7-9eb2-7c122aaca6c0_chunk_776
+Rank #10 │ Distance: 0 │ Length: 603 chars
+Chunk ID: unknown
 ────────────────────────────────────────────────────────────────────────────────
 
-o yang paling signifikan adalah sebagai berikut:
+Universal Power and Environment Interface Unit)
 
-## Perubahan imbal hasil obligasi
-
-Penurunan  pada  imbal  hasil  obligasi  Pemerintah berperingkat  tinggi  dapat  menyebabkan  kenaikan liabilitas program.
-
-## 15.  PINJAMAN
-
-NOTES TO THE INTERIM CONSOLIDATED FINANCIAL STATEMENTS 30 JUNE 2025 AND 2024
-
-(Expressed in millions of Rupiah, and where applicable, in thousands of U.S. Dollar, unless otherwise stated)
-
-## 14.  EMPLOYEE BENEFITS (continued)
+1. Pada  eNodeB,  jalankan  perintah  BLK  CELL  untuk  memblokir  semua  sel  yang bekerja dalam mode LTE.
+2. Matikan tegangan listrik pada BBU.
+3. Catat  semua  kabel  yang  terhubung  di  UPEU  dan  lepaskan,  lalu  lepaskan  baut menggunakan obeng dan taruh UPEU yang rusak.
+4. Pasang UPEU board baru dan pasang kembali kabel-kabel yang terhubung sesuai dengan catatan dan kencangkan dengan baut.
+5. Nyalakan tegangan listrik pada BBU.
+6. Pada eNodeB, jalankan perintah UBL CELL untuk membuka blokir semua sel yang bekerja dalam mode LTE.
+7. Selesai.
 
 ================================================================================
 
